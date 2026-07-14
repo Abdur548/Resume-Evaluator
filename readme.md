@@ -142,7 +142,7 @@ The score measures evidence present in the submitted resume; it does not infer t
 
 Broad preset alternatives are grouped as capabilities rather than scored as mandatory tool inventories. For example, NLP, computer vision, and generative AI satisfy one AI-specialization group, while AWS, Azure, GCP, Docker, or Kubernetes satisfy one production-infrastructure group.
 
-The frontend is organized as a compact retro workstation. The left evaluation panel contains target, profile, custom-JD, and upload controls. The right document surface previews the selected role and its source register before a run. After evaluation, the same surface switches to **Overview**, **Evidence**, and **Guidance** tabs so large result sets remain scannable without hiding any MVP1 or MVP2 output.
+The frontend is organized as a compact dark terminal workstation with near-black surfaces, restrained phosphor-green text, and semantic amber/red status accents. The left evaluation panel contains target, profile, custom-JD, and upload controls. The right document surface previews the selected role and its source register before a run. After evaluation, the same surface switches to **Overview**, **Evidence**, and **Guidance** tabs so large result sets remain scannable without hiding any MVP1 or MVP2 output.
 
 The frontend uses a built-in profile by default and still supports a custom JD. With job-fit analysis enabled, it displays:
 
