@@ -1,0 +1,101 @@
+{
+  "presets": [
+    {
+      "id": "ai_ml_engineer",
+      "title": "AI / Machine Learning Engineer",
+      "category": "AI",
+      "field": "artificial_intelligence",
+      "summary": "Build, validate, deploy, and monitor machine-learning systems that turn data and research into reliable product capabilities.",
+      "description": "Required Qualifications\n- Proficiency in Python and machine learning for developing practical models.\n- Experience evaluating models through feature engineering, validation, statistics, or experimental evaluation.\n- Ability to prepare structured or unstructured datasets using SQL, ETL, or data pipelines.\n- Experience delivering models through deployment, APIs, MLOps, monitoring, or reproducible workflows.\n- Clear technical communication and collaboration with technical or product teams.\n- Disciplined use of version control with Git.\n\nPreferred Qualifications\n- Experience with a deep-learning framework such as PyTorch, TensorFlow, or JAX.\n- Evidence of an applied AI specialization such as natural language processing, computer vision, or generative AI.\n- Familiarity with production infrastructure such as a cloud platform, Docker, or Kubernetes.\n- Experience translating research papers into production systems.",
+      "sources": [
+        {
+          "name": "O*NET Computer and Information Research Scientists",
+          "organization": "U.S. Department of Labor",
+          "occupation_code": "15-1221.00",
+          "url": "https://www.onetonline.org/link/details/15-1221.00"
+        },
+        {
+          "name": "O*NET Data Scientists",
+          "organization": "U.S. Department of Labor",
+          "occupation_code": "15-2051.00",
+          "url": "https://www.onetonline.org/link/summary/15-2051.00"
+        }
+      ]
+    },
+    {
+      "id": "computer_scientist",
+      "title": "Computer Scientist",
+      "category": "CS",
+      "field": "computer_science",
+      "summary": "Analyze complex computing problems and design, test, and communicate rigorous software, systems, or research solutions.",
+      "description": "Required Qualifications\n- Strong knowledge of algorithms, data structures, programming, and mathematical modeling.\n- Ability to analyze technical problems and design software or computer systems that address them.\n- Experience with Python, C++, or Java and disciplined use of testing and version control.\n- Understanding of operating systems, databases, computer networks, and computer architecture.\n- Ability to evaluate technical feasibility, document findings, and communicate with technical stakeholders.\n\nPreferred Qualifications\n- Experience with distributed systems, parallel computing, robotics, or human-computer interaction.\n- Evidence of research, technical publications, prototypes, or multidisciplinary project work.\n- Familiarity with statistics and experimental design.",
+      "sources": [
+        {
+          "name": "O*NET Computer and Information Research Scientists",
+          "organization": "U.S. Department of Labor",
+          "occupation_code": "15-1221.00",
+          "url": "https://www.onetonline.org/link/details/15-1221.00"
+        }
+      ]
+    },
+    {
+      "id": "software_engineer",
+      "title": "Software Engineer",
+      "category": "SE",
+      "field": "software_engineer",
+      "summary": "Design, implement, test, document, and maintain dependable software in collaboration with users and engineering teams.",
+      "description": "Required Qualifications\n- Proficiency in software development using a language such as Python, Java, C++, JavaScript, or TypeScript.\n- Experience analyzing user needs, defining requirements, and applying software design and system design principles.\n- Ability to build and integrate REST APIs, databases, and maintainable application components.\n- Strong testing, debugging, code review, and version control practices.\n- Experience documenting software and collaborating in an Agile engineering team.\n\nPreferred Qualifications\n- Familiarity with cloud platforms, Docker, Kubernetes, and CI/CD pipelines.\n- Experience with distributed systems, performance optimization, or application security.\n- Knowledge of relational databases and SQL.",
+      "sources": [
+        {
+          "name": "O*NET Software Developers",
+          "organization": "U.S. Department of Labor",
+          "occupation_code": "15-1252.00",
+          "url": "https://www.onetonline.org/link/details/15-1252.00"
+        },
+        {
+          "name": "BLS Software Developers, Quality Assurance Analysts, and Testers",
+          "organization": "U.S. Bureau of Labor Statistics",
+          "url": "https://www.bls.gov/ooh/computer-and-information-technology/software-developers.htm"
+        }
+      ]
+    },
+    {
+      "id": "data_scientist",
+      "title": "Data Scientist",
+      "category": "DS",
+      "field": "data_scientist",
+      "summary": "Transform structured and unstructured data into validated models, visual analysis, and decisions stakeholders can act on.",
+      "description": "Required Qualifications\n- Proficiency in Python, SQL, pandas, and NumPy for data preparation and analysis.\n- Experience with statistical analysis, machine learning, predictive modeling, and feature engineering.\n- Ability to test and validate models and explain their assumptions, accuracy, and limitations.\n- Experience visualizing findings with tools such as matplotlib, Tableau, or Power BI.\n- Ability to present data-driven recommendations clearly to technical and non-technical stakeholders.\n\nPreferred Qualifications\n- Experience with scikit-learn, XGBoost, natural language processing, or deep learning.\n- Familiarity with Spark, ETL pipelines, experiment design, and model deployment.\n- Experience working with large structured and unstructured datasets.",
+      "sources": [
+        {
+          "name": "O*NET Data Scientists",
+          "organization": "U.S. Department of Labor",
+          "occupation_code": "15-2051.00",
+          "url": "https://www.onetonline.org/link/summary/15-2051.00"
+        }
+      ]
+    },
+    {
+      "id": "cybersecurity_analyst",
+      "title": "Cybersecurity Analyst",
+      "category": "Cybersecurity",
+      "field": "cybersecurity",
+      "summary": "Protect systems and information by assessing risk, monitoring threats, managing vulnerabilities, and responding to incidents.",
+      "description": "Required Qualifications\n- Experience with security monitoring, risk assessment, vulnerability management, and incident response.\n- Knowledge of network security, firewalls, access control, authentication, and encryption.\n- Ability to analyze alerts and logs using SIEM tools such as Splunk and document investigation findings.\n- Working knowledge of Linux, computer networks, and scripting with Python or PowerShell.\n- Ability to recommend safeguards, support security awareness, and communicate risk to stakeholders.\n\nPreferred Qualifications\n- Familiarity with the NIST Cybersecurity Framework, NICE Framework, MITRE ATT&CK, or related security frameworks.\n- Experience with cloud security on AWS, Azure, or GCP and tools such as Nessus.\n- Knowledge of threat intelligence, digital forensics, or penetration testing.",
+      "sources": [
+        {
+          "name": "O*NET Information Security Analysts",
+          "organization": "U.S. Department of Labor",
+          "occupation_code": "15-1212.00",
+          "url": "https://www.onetonline.org/link/details/15-1212.00"
+        },
+        {
+          "name": "NIST NICE Workforce Framework for Cybersecurity",
+          "organization": "National Institute of Standards and Technology",
+          "publication": "SP 800-181 Rev. 1",
+          "url": "https://csrc.nist.gov/pubs/sp/800/181/r1/final"
+        }
+      ]
+    }
+  ]
+}

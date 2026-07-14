@@ -1,0 +1,14 @@
+John Doe
+john.doe@email.com | 555-123-4567
+
+EXPERIENCE
+Backend Engineer, Acme Corp - Jan 2022 - present
+- Built a FastAPI microservice handling 10k requests/sec, reducing latency by 40%
+- Designed a PostgreSQL schema supporting 5 million user records
+- Implemented Redis caching layer, cutting database load by 30%
+
+EDUCATION
+Bachelor of Science in Computer Science, State University - 2016 - 2020
+
+SKILLS
+Python, FastAPI, Django, PostgreSQL, Redis, Docker, Kubernetes, AWS, SQL, Git

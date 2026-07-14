@@ -1,0 +1,12 @@
+Alex Chen
+alex@email.com | 555-333-4444
+
+EXPERIENCE
+Backend Engineer, SmallCo — Jan 2023 - present
+- Built internal tools using Python
+
+Software Engineer, FirstJob — Jun 2015 - Dec 2017
+- Wrote SQL queries
+
+EDUCATION
+Bachelor of Science in Computer Science, University — 2010 - 2014

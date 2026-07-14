@@ -1,0 +1,13 @@
+# Python
+backend/.venv/
+backend/__pycache__/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+
+# Existing local environment
+venv/
+
+# Frontend dependencies and output are also covered by frontend/.gitignore.
+frontend/node_modules/
+frontend/dist/

@@ -1,0 +1,4 @@
+Jane Smith
+jane@email.com | 555-000-0000
+
+Python FastAPI Django Flask Node.js REST API Microservices PostgreSQL MongoDB Redis Docker Kubernetes AWS GCP Azure CI/CD Unit Testing System Design SQL GraphQL Message Queue Kafka Scalability Authentication Database Schema Caching Load Balancing Git Linux Distributed Systems

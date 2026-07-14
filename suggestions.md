@@ -1,0 +1,28 @@
+# Suggestions
+
+- **Installation Warning**: Deferred, post-MVP - README now documents backend and frontend install steps; installer UX can be improved later.
+- **File Types**: Deferred, post-MVP - MVP intentionally supports only PDF and DOCX uploads.
+- **Scalability of BM25**: Deferred, post-MVP - current local corpus is small; caching/index prebuild can wait until the corpus grows.
+- **CORS Configuration**: Deferred, post-MVP - localhost-only origins are sufficient for local MVP development.
+- **Google Generative AI Library Deprecation**: Addressed - both LLM paths now use the supported `google-genai` SDK and its client-based API.
+- **Guardrails Simplicity**: Deferred, post-MVP - regex-based guardrails are adequate for the first local MVP and covered by tests.
+- **Frontend File Upload Limit**: Addressed - `/evaluate` rejects files over 5 MB with HTTP 413, and API regression coverage verifies the limit.
+- **Endpoint Abuse Protection**: Addressed - `/evaluate` has a basic in-memory per-IP rate limit of 10 requests per 60 seconds.
+- **Job-Fit Seniority Vocabulary**: Deferred, post-MVP2 tuning - the fixed tier list is intentionally finite and needs evidence-backed expansion for role-specific terminology.
+- **Required/Preferred Job-Fit Weights**: Addressed for MVP2 - required evidence now contributes 80% and preferred evidence 20%, so optional specializations cannot dominate a broad profile; outcome-based calibration remains post-MVP research.
+- **Dense-Prose JD Segmentation**: Deferred, post-MVP2 hardening - the deterministic fallback is covered by a regression test but needs more varied adversarial fixtures before production use.
+- **MVP2 Frontend Integration**: Addressed - the frontend submits optional `jd_text` and renders deterministic job-fit scores, priority gaps, requirement evidence, and Gemini job-fit guidance without replacing MVP1 results.
+- **Frontend Job Description Limit**: Addressed - the JD input is capped at 20,000 characters and exposes a live character count.
+- **Frontend Component Regression Tests**: Deferred, post-MVP2 hardening - lint, production build, browser interaction, responsive layout, and live API integration are verified; a dedicated component-test runner is not yet configured.
+- **Predefined CS Job Profiles**: Addressed - AI/ML Engineer, Computer Scientist, Software Engineer, Data Scientist, and Cybersecurity Analyst presets are available through `/job-presets` and selected directly in the frontend.
+- **Preset Source Reliability**: Addressed - the checked-in profiles are synthesized from U.S. Department of Labor O*NET profiles, the BLS Occupational Outlook Handbook, and the NIST NICE Workforce Framework, with direct source metadata returned by the API.
+- **Custom Employer Job Descriptions**: Addressed - custom JD mode remains available because a general occupation profile cannot represent every employer's stack, domain, or seniority requirements.
+- **Preset Library Expansion**: Deferred, post-MVP2 - five requested CS profiles cover the current scope; adding specializations such as DevOps, mobile, QA, and cloud engineering needs new source review and test-backed corpora.
+- **Preset Source Refresh Schedule**: Deferred, post-MVP2 operations - sources and URLs are checked in and visible, but automated monitoring for O*NET, BLS, or NIST revisions is outside this local MVP.
+- **Preset Calibration Against Hiring Outcomes**: Deferred, post-MVP2 research - profiles are trustworthy occupational baselines, not validated predictors of hiring decisions, and need representative resume/JD datasets before weight tuning.
+- **Duplicate Canonical Requirements**: Addressed - repeated mentions such as AI model validation are merged into one scoring row, with required placement and stricter explicit qualifiers retained.
+- **Unqualified Match Score Ceiling**: Addressed - an evidenced skill with no stated years or seniority requirement now receives full credit instead of being capped at 50%.
+- **AI Profile Breadth**: Addressed - the AI/ML preset now scores seven core capabilities and four optional groups instead of treating every framework, specialization, and infrastructure example as a separate requirement.
+- **Resume Evidence Versus Candidate Ability**: Addressed in product semantics - the UI now describes unevidenced capabilities rather than claiming a candidate lacks them; the evaluator intentionally cannot award credit for experience absent from the submitted resume.
+- **Capability Grouping for Other Presets**: Deferred, post-MVP2 tuning - the same grouping approach should be applied only where adversarial examples show a preset incorrectly treats alternatives as cumulative requirements.
+- **Retro Workstation UI**: Addressed - the frontend now uses a responsive two-pane evaluator console with profile/source preview, compact run metadata, and separate Overview, Evidence, and Guidance result views while retaining every MVP1 and MVP2 state. Evidence results use an aligned JD/resume comparison board with exact matched-alias highlighting.
