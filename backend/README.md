@@ -15,4 +15,6 @@ Run its test suite from the project root:
 python -m pytest backend -v
 ```
 
-The API listens on `http://localhost:8000` by default. `GEMINI_API_KEY` is optional; all deterministic scoring remains available without it.
+The API listens on `http://localhost:8000` by default. `GEMINI_API_KEY` is optional; all deterministic scoring remains available without it. `CORS_ORIGINS` optionally accepts a comma-separated HTTP(S) origin allowlist and defaults to the local frontend ports 3000 and 5173.
+
+`POST /evaluate` accepts PDF or DOCX files up to 5 MB and optional job descriptions up to 20,000 characters.

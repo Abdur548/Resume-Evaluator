@@ -1,10 +1,13 @@
 import os
 import json
 import tempfile
+import time
 from pathlib import Path
+from urllib.parse import urlsplit
+
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-import time
+
 from . import pipeline
 
 app = FastAPI(title="Resume Evaluator API")
@@ -15,12 +18,47 @@ RATE_LIMIT_WINDOW = 60  # seconds
 RATE_LIMIT_MAX = 10  # max requests per window per IP
 
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+MAX_JOB_DESCRIPTION_LENGTH = 20_000
 READ_CHUNK_SIZE = 1024 * 1024
 
-# Setup CORS
+DEFAULT_CORS_ORIGINS = (
+    "http://localhost:3000",
+    "http://localhost:5173",
+)
+
+
+def parse_cors_origins(raw_origins: str | None) -> list[str]:
+    """Return a normalized CORS allowlist without accepting paths or wildcards."""
+    if raw_origins is None or not raw_origins.strip():
+        return list(DEFAULT_CORS_ORIGINS)
+
+    origins = []
+    for candidate in raw_origins.split(","):
+        parsed = urlsplit(candidate.strip().rstrip("/"))
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.netloc
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise RuntimeError(
+                "CORS_ORIGINS must contain comma-separated HTTP(S) origins "
+                "without paths, queries, or fragments."
+            )
+        origin = f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"
+        if origin not in origins:
+            origins.append(origin)
+    return origins
+
+
+CORS_ORIGINS = parse_cors_origins(os.environ.get("CORS_ORIGINS"))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -84,6 +122,15 @@ async def evaluate(
     # Validate field
     if field not in VALID_FIELDS:
         raise HTTPException(status_code=400, detail=f"Invalid field. Valid options are: {', '.join(VALID_FIELDS)}")
+
+    if jd_text is not None and len(jd_text) > MAX_JOB_DESCRIPTION_LENGTH:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                "Job description too large. Maximum allowed length is "
+                f"{MAX_JOB_DESCRIPTION_LENGTH:,} characters."
+            ),
+        )
 
     # Read in bounded chunks so oversized uploads are rejected before the
     # application keeps the entire body in memory.

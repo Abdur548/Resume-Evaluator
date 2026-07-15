@@ -24,16 +24,20 @@ The backend is a Python package. Run backend commands from the project root so i
 
 `GEMINI_API_KEY` is optional. Without it, deterministic resume and job-fit evaluations still work; the relevant LLM evaluation is returned as `null` with a skip status.
 
+`CORS_ORIGINS` is optional. It accepts a comma-separated list of HTTP(S) origins and defaults to `http://localhost:3000,http://localhost:5173`. Use it when the frontend runs on another origin; do not include credentials, paths, wildcards, queries, or fragments.
+
 PowerShell:
 
 ```powershell
 $env:GEMINI_API_KEY="your_api_key_here"
+$env:CORS_ORIGINS="http://localhost:5173,https://resume.example.com"
 ```
 
 macOS/Linux:
 
 ```bash
 export GEMINI_API_KEY="your_api_key_here"
+export CORS_ORIGINS="http://localhost:5173,https://resume.example.com"
 ```
 
 The frontend uses `VITE_API_BASE_URL`, defaulting to `http://localhost:8000`. To override it, create `frontend/.env` from `frontend/.env.example`.
@@ -160,7 +164,8 @@ The evidence API records the exact matched resume alias for each canonical capab
 
 - Supported uploads are PDF and DOCX.
 - `/evaluate` rejects uploads over 5 MB.
+- `/evaluate` rejects job descriptions over 20,000 characters, matching the frontend input limit.
 - `/evaluate` applies an in-memory limit of 10 requests per 60 seconds per client IP.
-- CORS currently allows the local frontend origins on ports 3000 and 5173.
+- CORS allows local frontend ports 3000 and 5173 by default and can be configured with `CORS_ORIGINS`.
 - Gemini integration uses the supported `google-genai` SDK through `from google import genai`.
 - The frontend limits pasted job descriptions to 20,000 characters.
