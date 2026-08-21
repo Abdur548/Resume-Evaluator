@@ -1,11 +1,17 @@
 # Python
-backend/.venv/
 backend/__pycache__/
 __pycache__/
 .pytest_cache/
 *.py[cod]
 
-# Existing local environment
+# Test and coverage artifacts
+.coverage
+coverage.xml
+htmlcov/
+
+# Virtual environments. The canonical one is backend/.venv (see readme.md);
+# the unanchored patterns also catch a venv created from the wrong directory.
+.venv/
 venv/
 
 # Frontend dependencies and output are also covered by frontend/.gitignore.

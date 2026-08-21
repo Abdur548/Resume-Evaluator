@@ -18,7 +18,13 @@ The backend is a Python package. Run backend commands from the project root so i
 ## Prerequisites
 
 - Python 3.11 or newer
-- Node.js 20 or newer with npm
+- Node.js `^20.19` or `>=22.12` with npm — the exact range required by `vite`, `@vitejs/plugin-react`, and `oxlint`. Node 20.0 through 20.18 will not build.
+
+`backend/.venv` is the canonical backend environment. Create it from the project
+root exactly as shown below; running `python -m venv backend/.venv` from inside
+`backend/` produces a stray `backend/backend/.venv` instead. CI installs from
+`backend/requirements.txt` and fails if any installed version drifts from a pin,
+so a local environment that disagrees with the manifest will not match CI.
 
 ## Environment Variables
 
@@ -104,10 +110,16 @@ Open `http://localhost:5173`, choose one of the built-in job profiles, upload a 
 
 ## Tests and Verification
 
-Backend tests, from the project root:
+Backend tests, from the project root with `backend/.venv` activated:
 
 ```powershell
 python -m pytest backend -v
+```
+
+To confirm the active environment matches the pinned manifest — the same check CI runs:
+
+```powershell
+python .github/scripts/check_pins.py
 ```
 
 The LLM tests use mocks, so a live Gemini key is not required.
