@@ -7,19 +7,43 @@ from google.genai import types
 
 MODEL_NAME = "gemini-2.5-flash"
 
+# Instruction-shaped patterns only.
+#
+# An earlier version matched the bare word "bypass" and a bare "system:"
+# anywhere in the text. Both are ordinary vocabulary in security and
+# engineering resumes -- "prevented authentication bypass", "System: designed a
+# queue" -- so the guardrail silently disabled the LLM supplement for exactly
+# the candidates the Cybersecurity Analyst profile is meant to serve.
+#
+# These require a verb aimed at instructions or a role reassignment, which is
+# what an injection attempt looks like and what ordinary resume prose does not.
+# Regex is a secondary signal here; the primary defense is the system prompt's
+# instruction to treat resume and job-description text as untrusted data.
+INJECTION_TARGET = r"(?:instructions?|rules?|guardrails?|restrictions?|constraints?|prompts?|directives?|safety\s+\w+)"
+
+INJECTION_PATTERNS = [
+    # "ignore / disregard / forget / override (all your previous) instructions"
+    rf"(?i)\b(?:ignore|disregard|forget|override|discard)\b[^.\n]{{0,40}}?\b{INJECTION_TARGET}\b",
+    # "bypass the safety rules" -- but not "prevented an authentication bypass"
+    rf"(?i)\bbypass(?:ing)?\b[^.\n]{{0,40}}?\b{INJECTION_TARGET}\b",
+    # Role reassignment: "you are now a recruiter who...", "act as an evaluator"
+    r"(?i)\byou\s+are\s+now\s+(?:a|an|the)\b",
+    r"(?i)\b(?:act|behave|respond)\s+as\s+(?:a|an|the)\b[^.\n]{0,30}\b(?:assistant|model|ai|system)\b",
+    # A fake conversation turn at the start of a line. "assistant:" and "user:"
+    # essentially never open a resume line, so they stand alone; "System:" does
+    # ("System: designed a distributed queue"), so it additionally requires an
+    # instruction cue rather than ordinary descriptive prose.
+    r"(?im)^\s*(?:assistant|user)\s*:",
+    r"(?im)^\s*system\s*:\s*(?=[^\n]*\b(?:you|your|must|always|never|ignore|"
+    r"override|disregard|return|output|respond|reply|score|rate|say|print)\b)",
+    # Explicit output hijacking
+    r"(?i)\b(?:new|updated|revised)\s+(?:instructions?|system\s+prompt)\b",
+    r"(?i)\bprint\s+(?:your|the)\s+(?:system\s+prompt|instructions)\b",
+]
+
+
 def detect_prompt_injection(text: str) -> bool:
-    patterns = [
-        r"(?i)ignore\s+previous\s+instructions",
-        r"(?i)ignore\s+all\s+previous",
-        r"(?i)system:",
-        r"(?i)you\s+are\s+now",
-        r"(?i)forget\s+all",
-        r"(?i)bypass",
-    ]
-    for p in patterns:
-        if re.search(p, text):
-            return True
-    return False
+    return any(re.search(pattern, text) for pattern in INJECTION_PATTERNS)
 
 def mask_pii(text: str) -> str:
     # Phone numbers
@@ -44,17 +68,26 @@ def validate_llm_response(response_text: str) -> dict | None:
         cleaned = re.sub(r"```json\s*", "", response_text)
         cleaned = re.sub(r"```\s*$", "", cleaned)
         data = json.loads(cleaned)
-        
+
+        # A JSON array or scalar is valid JSON but has no .keys(); calling it
+        # raised an AttributeError that surfaced to the user as a spurious
+        # "API Error". The job-fit validator has always guarded this.
+        if not isinstance(data, dict):
+            return None
+
         required_keys = {"field_relevance", "structure", "parseability", "impact"}
         if not required_keys.issubset(data.keys()):
             return None
-        
-        # Enforce integers 0-100
+
+        # Enforce integers 0-100. bool is a subclass of int, so `True` would
+        # otherwise validate as a score and render in the UI as "true / 100".
         for k in required_keys:
             val = data[k]
-            if not isinstance(val, int) or not (0 <= val <= 100):
+            if isinstance(val, bool) or not isinstance(val, int):
                 return None
-                
+            if not (0 <= val <= 100):
+                return None
+
         # Only return the specific required categories, ignore extra keys if any
         return {k: data[k] for k in required_keys}
     except (json.JSONDecodeError, TypeError):
