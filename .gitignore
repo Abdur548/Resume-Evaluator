@@ -15,6 +15,12 @@ htmlcov/
 .env.*
 !.env.example
 
+# Personal resumes used for local testing. Real resumes carry names, emails,
+# phone numbers and addresses and must never be committed. Checked-in test
+# fixtures live in backend/ (sample_resume.*), not here.
+data/
+backend/data/
+
 # Virtual environments. The canonical one is backend/.venv (see readme.md);
 # the unanchored patterns also catch a venv created from the wrong directory.
 .venv/
