@@ -15,6 +15,18 @@ def clear_rate_limit():
     main.RATE_LIMIT.clear()
 
 
+def assert_error(response, expected_code, expected_text):
+    """Every error response uses one envelope: error.code / message / request_id."""
+    body = response.json()
+    assert set(body) == {"error"}, body
+    error = body["error"]
+    assert set(error) == {"code", "message", "request_id"}, error
+    assert error["code"] == expected_code
+    assert expected_text in error["message"]
+    assert error["request_id"]
+    assert response.headers["X-Request-ID"] == error["request_id"]
+
+
 def test_health_check():
     response = client.get("/health")
     assert response.status_code == 200
@@ -128,7 +140,7 @@ def test_evaluate_invalid_file_type():
         files={"file": ("sample_resume.txt", b"This is a test resume.", "text/plain")}
     )
     assert response.status_code == 400
-    assert "Only .pdf and .docx are supported" in response.json()["detail"]
+    assert_error(response, "invalid_file_type", "Only .pdf and .docx are supported")
 
 
 def test_evaluate_invalid_field():
@@ -139,7 +151,7 @@ def test_evaluate_invalid_field():
             files={"file": ("sample_resume.pdf", f, "application/pdf")}
         )
     assert response.status_code == 400
-    assert "Invalid field" in response.json()["detail"]
+    assert_error(response, "invalid_field", "Invalid field")
 
 
 def test_evaluate_no_file():
@@ -158,7 +170,7 @@ def test_evaluate_rejects_oversized_upload():
         files={"file": ("oversized.pdf", oversized, "application/pdf")}
     )
     assert response.status_code == 413
-    assert "File too large" in response.json()["detail"]
+    assert_error(response, "file_too_large", "File too large")
 
 
 def test_evaluate_rejects_oversized_job_description():
@@ -171,7 +183,7 @@ def test_evaluate_rejects_oversized_job_description():
         files={"file": ("sample_resume.pdf", b"%PDF-1.4", "application/pdf")},
     )
     assert response.status_code == 413
-    assert "Job description too large" in response.json()["detail"]
+    assert_error(response, "job_description_too_large", "Job description too large")
 
 
 def test_evaluate_rate_limits_by_client_ip(monkeypatch):
@@ -199,7 +211,7 @@ def test_evaluate_rate_limits_by_client_ip(monkeypatch):
         files={"file": ("sample_resume.pdf", b"%PDF-1.4", "application/pdf")}
     )
     assert blocked.status_code == 429
-    assert "Too many requests" in blocked.json()["detail"]
+    assert_error(blocked, "rate_limited", "Too many requests")
 
 def test_evaluate_with_jd_adds_job_fit_keys(monkeypatch):
     monkeypatch.setattr(

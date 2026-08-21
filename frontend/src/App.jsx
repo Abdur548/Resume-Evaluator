@@ -27,6 +27,28 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 
 const formatLabel = (value = '') => value.replaceAll('_', ' ');
 
+const GENERIC_ERROR = 'Could not evaluate the resume. Please try again.';
+
+// The API returns one error envelope: { error: { code, message, request_id } }.
+// Anything else -- a proxy HTML page, a truncated body, an older server -- must
+// not reach the user as raw text, so it collapses to a generic message.
+const readApiError = async (response) => {
+  let body;
+  try {
+    body = await response.json();
+  } catch {
+    return GENERIC_ERROR;
+  }
+
+  const apiError = body?.error;
+  if (typeof apiError?.message !== 'string' || !apiError.message) {
+    return GENERIC_ERROR;
+  }
+  return apiError.code === 'internal_error' && apiError.request_id
+    ? `${apiError.message} (reference ${apiError.request_id})`
+    : apiError.message;
+};
+
 const formatFileSize = (bytes) => {
   if (!bytes) return '';
   return bytes < 1024 * 1024
@@ -366,12 +388,13 @@ function App() {
 
     try {
       const response = await fetch(`${API_BASE_URL}/evaluate`, { method: 'POST', body: formData });
+      if (!response.ok) throw new Error(await readApiError(response));
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || 'Failed to evaluate resume.');
       setResults(data);
       setResultView(includeJobFit ? 'evidence' : 'overview');
     } catch (requestError) {
-      setError(requestError.message);
+      // A network failure (backend down, CORS, DNS) has no response to read.
+      setError(requestError.message || GENERIC_ERROR);
     } finally {
       setIsLoading(false);
     }

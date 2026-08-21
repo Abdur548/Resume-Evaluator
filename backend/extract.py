@@ -19,15 +19,38 @@ Usage:
 """
 
 import re
+import zipfile
 from pathlib import Path
 
 import pdfplumber
 from docx import Document
+from docx.opc.exceptions import PackageNotFoundError
+from pdfplumber.utils.exceptions import PdfminerException
 
 # Unicode bullet characters extraction commonly produces, normalized to "- "
 BULLET_CHARS = ["•", "●", "▪", "‣", "◦", "·", "■", "–\t", "*\t"]
 
 SUPPORTED_EXTENSIONS = {".pdf", ".docx"}
+
+# Library-level failures that mean "the caller sent us something unreadable",
+# not "the server is broken". They are translated to ValueError so this module
+# keeps a single documented error type and callers can map it to a 4xx.
+# Note KeyError: python-docx raises it bare when a structurally valid ZIP is
+# missing the '[Content_Types].xml' Office part.
+_PDF_CORRUPTION_ERRORS = (PdfminerException, zipfile.BadZipFile)
+_DOCX_CORRUPTION_ERRORS = (zipfile.BadZipFile, PackageNotFoundError, KeyError)
+
+# Error text is deliberately free of file paths. These messages reach the HTTP
+# client, and the path here is a server-side temporary file whose name would
+# disclose the host's directory layout and account name.
+_UNREADABLE_PDF = (
+    "Could not read this file as a PDF. It may be corrupt, incomplete, or not "
+    "actually a PDF."
+)
+_UNREADABLE_DOCX = (
+    "Could not read this file as a DOCX. It may be corrupt, incomplete, or not "
+    "actually a Word document."
+)
 
 
 def extract_text(filepath: str) -> str:
@@ -50,23 +73,29 @@ def extract_text(filepath: str) -> str:
 
 def _extract_pdf(path: Path) -> str:
     lines = []
-    with pdfplumber.open(path) as pdf:
-        if len(pdf.pages) == 0:
-            raise ValueError(f"PDF has no pages: {path}")
-        for page in pdf.pages:
-            text = page.extract_text()
-            if text:
-                lines.append(text)
+    try:
+        with pdfplumber.open(path) as pdf:
+            if len(pdf.pages) == 0:
+                raise ValueError("This PDF contains no pages.")
+            for page in pdf.pages:
+                text = page.extract_text()
+                if text:
+                    lines.append(text)
+    except _PDF_CORRUPTION_ERRORS as exc:
+        raise ValueError(_UNREADABLE_PDF) from exc
     if not lines:
         raise ValueError(
-            f"No extractable text found in {path}. Likely a scanned/image-based "
-            "PDF -- this extractor does not do OCR."
+            "No extractable text found in this PDF. It is likely a scanned or "
+            "image-based document -- this extractor does not do OCR."
         )
     return "\n".join(lines)
 
 
 def _extract_docx(path: Path) -> str:
-    doc = Document(path)
+    try:
+        doc = Document(path)
+    except _DOCX_CORRUPTION_ERRORS as exc:
+        raise ValueError(_UNREADABLE_DOCX) from exc
     lines = []
     for para in doc.paragraphs:
         text = para.text.strip()
@@ -80,7 +109,7 @@ def _extract_docx(path: Path) -> str:
         else:
             lines.append(text)
     if not lines:
-        raise ValueError(f"No text found in {path}")
+        raise ValueError("No text found in this DOCX file.")
     return "\n".join(lines)
 
 
