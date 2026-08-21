@@ -9,6 +9,12 @@ __pycache__/
 coverage.xml
 htmlcov/
 
+# Secrets. GEMINI_API_KEY is a backend value, so the natural place to put it
+# is a backend or root .env -- neither of which was covered before.
+.env
+.env.*
+!.env.example
+
 # Virtual environments. The canonical one is backend/.venv (see readme.md);
 # the unanchored patterns also catch a venv created from the wrong directory.
 .venv/
