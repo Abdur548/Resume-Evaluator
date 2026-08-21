@@ -1,8 +1,9 @@
 """Deterministic job-description section and requirement parsing."""
 
 import re
+from functools import lru_cache
 
-from .scorer import load_field_corpus
+from .corpora import load_field_corpus
 
 
 REQUIRED_HEADER_PATTERNS = (
@@ -66,7 +67,10 @@ def split_jd_sections(jd_text: str) -> dict:
     }
 
 
+@lru_cache(maxsize=None)
 def _alias_pattern(alias: str) -> re.Pattern:
+    """Compile one alias pattern. Cached: the same aliases are matched against
+    every requirement and every resume, and recompiling dominated the cost."""
     escaped = re.escape(alias.strip())
     escaped = escaped.replace(r"\ ", r"\s+")
     return re.compile(
@@ -77,18 +81,43 @@ def _alias_pattern(alias: str) -> re.Pattern:
 
 def skill_aliases(field: str) -> dict[str, list[str]]:
     """Return canonical skills and their searchable aliases."""
+    return {
+        canonical: list(aliases)
+        for canonical, aliases in _skill_aliases_cached(field).items()
+    }
+
+
+@lru_cache(maxsize=None)
+def _skill_aliases_cached(field: str) -> dict[str, tuple[str, ...]]:
+    """Alias lists are derived from read-only corpus data, so build them once.
+
+    Values are tuples because the result is cached and must not be mutated by
+    a caller.
+    """
     corpus = load_field_corpus(field)
     aliases = {}
     for canonical, synonyms in corpus.items():
         values = [canonical.replace("_", " "), *synonyms]
-        aliases[canonical] = sorted(set(values), key=lambda value: (-len(value), value))
+        aliases[canonical] = tuple(
+            sorted(set(values), key=lambda value: (-len(value), value))
+        )
     return aliases
+
+
+def reset_caches() -> None:
+    """Drop alias data derived from the corpus file.
+
+    Needed alongside corpora.reset_cache() when a test edits the corpus, since
+    these caches would otherwise keep serving the previous vocabulary.
+    """
+    _skill_aliases_cached.cache_clear()
+    _alias_pattern.cache_clear()
 
 
 def find_skill_mentions(text: str, field: str) -> list[dict]:
     """Locate exact alias spans and return canonical skill ownership."""
     mentions = []
-    for canonical, aliases in skill_aliases(field).items():
+    for canonical, aliases in _skill_aliases_cached(field).items():
         for alias in aliases:
             for match in _alias_pattern(alias).finditer(text):
                 mentions.append(

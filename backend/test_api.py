@@ -189,8 +189,8 @@ def test_evaluate_rejects_oversized_job_description():
 def test_evaluate_rate_limits_by_client_ip(monkeypatch):
     monkeypatch.setattr(
         main.pipeline,
-        "evaluate_resume",
-        lambda path, field: {
+        "evaluate_upload",
+        lambda path, field, jd_text=None: {
             "heuristic_evaluation": {"total_score": 75},
             "llm_evaluation": None,
             "llm_evaluation_status": "Skipped: Missing API Key",
@@ -214,24 +214,23 @@ def test_evaluate_rate_limits_by_client_ip(monkeypatch):
     assert_error(blocked, "rate_limited", "Too many requests")
 
 def test_evaluate_with_jd_adds_job_fit_keys(monkeypatch):
-    monkeypatch.setattr(
-        main.pipeline,
-        "evaluate_resume",
-        lambda path, field: {
+    def fake_upload(path, field, jd_text=None):
+        result = {
             "heuristic_evaluation": {"total_score": 75},
             "llm_evaluation": None,
             "llm_evaluation_status": "Skipped: Missing API Key",
-        },
-    )
-    monkeypatch.setattr(
-        main.pipeline,
-        "evaluate_job_fit",
-        lambda path, field, jd_text: {
-            "job_fit_evaluation": {"job_fit_score": 50},
-            "llm_job_fit_evaluation": None,
-            "llm_job_fit_evaluation_status": "Skipped: Missing API Key",
-        },
-    )
+        }
+        if jd_text and jd_text.strip():
+            result.update(
+                {
+                    "job_fit_evaluation": {"job_fit_score": 50},
+                    "llm_job_fit_evaluation": None,
+                    "llm_job_fit_evaluation_status": "Skipped: Missing API Key",
+                }
+            )
+        return result
+
+    monkeypatch.setattr(main.pipeline, "evaluate_upload", fake_upload)
 
     response = client.post(
         "/evaluate",

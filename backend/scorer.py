@@ -21,10 +21,12 @@ Usage:
 
 import re
 import json
-from dataclasses import dataclass, field as dc_field
 from datetime import datetime
 from pathlib import Path
+
 from rank_bm25 import BM25Okapi
+
+from . import corpora
 
 # ---------------------------------------------------------------------------
 # Weights — change these, not the logic below, if you want a different split
@@ -37,7 +39,10 @@ WEIGHTS = {
 }
 assert sum(WEIGHTS.values()) == 100, "Weights must sum to 100"
 
-CORPORA_PATH = Path(__file__).parent / "field_corpora.json"
+# Corpus access lives in backend.corpora. Re-exported here because
+# load_field_corpus() has been part of this module's public surface.
+CORPORA_PATH = corpora.CORPORA_PATH
+load_field_corpus = corpora.load_field_corpus
 
 
 # ---------------------------------------------------------------------------
@@ -96,18 +101,6 @@ def score_parseability(text: str) -> dict:
 # ---------------------------------------------------------------------------
 def _tokenize(text: str) -> list:
     return re.findall(r"[a-zA-Z][a-zA-Z\+\#\.]{1,}", text.lower())
-
-
-def load_field_corpus(field: str) -> dict:
-    if not CORPORA_PATH.exists():
-        raise FileNotFoundError(f"No corpora file at {CORPORA_PATH}")
-    data = json.loads(CORPORA_PATH.read_text())
-    if field not in data:
-        raise KeyError(
-            f"Unknown field '{field}'. Available: {list(data.keys())}. "
-            "Add it to field_corpora.json first."
-        )
-    return data[field]  # {canonical_skill: [synonym, synonym, ...]}
 
 
 def score_field_relevance(text: str, field: str, bullet_count: int = None) -> dict:
@@ -301,7 +294,6 @@ def score_resume(text: str, field: str) -> dict:
 
 
 if __name__ == "__main__":
-    import sys
     sample_path = Path(__file__).parent / "sample_resume.txt"
     sample_text = sample_path.read_text()
     result = score_resume(sample_text, field="backend_engineer")

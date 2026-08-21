@@ -100,10 +100,10 @@ def test_valid_zip_that_is_not_an_office_package_is_rejected_cleanly():
 def test_unexpected_failure_returns_generic_500(monkeypatch):
     """An unforeseen exception is logged server-side, not described to the caller."""
 
-    def explode(path, field):
+    def explode(path, field, jd_text=None):
         raise RuntimeError("secret internal detail at C:/srv/app/config.yaml")
 
-    monkeypatch.setattr(main.pipeline, "evaluate_resume", explode)
+    monkeypatch.setattr(main.pipeline, "evaluate_upload", explode)
 
     # TestClient re-raises server exceptions by default, which would bypass the
     # handler under test. This asserts what a real HTTP client would receive.

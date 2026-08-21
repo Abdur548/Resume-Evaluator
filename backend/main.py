@@ -11,8 +11,9 @@ from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
-from . import file_signature, pipeline
+from . import corpora, file_signature, pipeline
 
 logger = logging.getLogger("resume_evaluator")
 
@@ -168,10 +169,7 @@ app.add_middleware(
 )
 
 # Load fields relative to this module, independent of the launch directory.
-CORPORA_PATH = Path(__file__).resolve().parent / "field_corpora.json"
-with CORPORA_PATH.open("r", encoding="utf-8") as f:
-    corpora = json.load(f)
-VALID_FIELDS = list(corpora.keys())
+VALID_FIELDS = corpora.available_fields()
 
 PRESETS_PATH = Path(__file__).resolve().parent / "job_description_presets.json"
 with PRESETS_PATH.open("r", encoding="utf-8") as f:
@@ -273,10 +271,13 @@ async def evaluate(
         tmp_path = tmp.name
 
     try:
-        # Call pipeline
-        result = pipeline.evaluate_resume(tmp_path, field)
-        if jd_text and jd_text.strip():
-            result.update(pipeline.evaluate_job_fit(tmp_path, field, jd_text))
+        # The pipeline is synchronous and slow: PDF parsing, BM25 scoring and
+        # up to four Gemini round trips. Running it inline would block the
+        # event loop for the whole request, so a single slow LLM call would
+        # stall every other in-flight request including /health.
+        result = await run_in_threadpool(
+            pipeline.evaluate_upload, tmp_path, field, jd_text
+        )
         return result
     except ValueError as e:
         # extract.py raises ValueError for every unreadable-document case,
