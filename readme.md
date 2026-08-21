@@ -48,6 +48,29 @@ export CORS_ORIGINS="http://localhost:5173,https://resume.example.com"
 
 The frontend uses `VITE_API_BASE_URL`, defaulting to `http://localhost:8000`. To override it, create `frontend/.env` from `frontend/.env.example`.
 
+Backend variables can also go in `backend/.env`, copied from `backend/.env.example`. Every `.env` file is gitignored; the `.env.example` templates are not, so keep real keys out of them.
+
+## Data sent to Gemini
+
+**Without `GEMINI_API_KEY`, nothing leaves your machine.** Extraction, resume scoring, and job-fit matching are entirely local and deterministic. The two Gemini supplements return `null` with a skip status and no network call is made.
+
+**With `GEMINI_API_KEY` set, the full text of every resume you evaluate is sent to Google's Gemini API**, along with the job description and the deterministic result. This happens on every evaluation, using your own API key, and the data is then handled under whatever terms apply to your own Google account. This project neither stores nor forwards it anywhere else.
+
+The backend applies some redaction before the call, but **it is partial and you should not rely on it**:
+
+| | Redacted before sending |
+|---|---|
+| Phone numbers, US-format SSNs, simple street addresses | Yes, in the resume and job-description text |
+| Names, email addresses, LinkedIn/GitHub URLs | **No** |
+| Unusual address formats, dates of birth, employer names | **No** |
+
+There is also one path around the redaction entirely. The deterministic job-fit result is sent alongside the resume, and it embeds verbatim resume lines as match evidence. Those lines are **not** redacted, so a detail that would otherwise be masked still reaches Gemini when it shares a line with a matched skill — a contact line such as `Jane Doe - Python Engineer - (555) 123-4567` is sent as written.
+
+This is a deliberate trade-off for a local, bring-your-own-key tool: your resumes go to your own Gemini account, and you decide whether that is acceptable. Two things follow from it:
+
+- Leave `GEMINI_API_KEY` unset if you do not want resume text sent anywhere. Every score except the two optional Gemini panels still works.
+- Do not evaluate someone else's resume with a key set unless they know their resume will be sent to a third-party API.
+
 ## Backend Setup
 
 From the project root, create the backend virtual environment inside the backend directory and activate it from there:
