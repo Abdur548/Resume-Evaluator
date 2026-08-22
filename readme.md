@@ -48,7 +48,15 @@ export CORS_ORIGINS="http://localhost:5173,https://resume.example.com"
 
 The frontend uses `VITE_API_BASE_URL`, defaulting to `http://localhost:8000`. To override it, create `frontend/.env` from `frontend/.env.example`.
 
-Backend variables can also go in `backend/.env`, copied from `backend/.env.example`. Every `.env` file is gitignored; the `.env.example` templates are not, so keep real keys out of them.
+Backend variables can also go in `backend/.env`, which is loaded automatically when the backend starts. **Copy** `backend/.env.example` to `backend/.env` rather than renaming it, so the template stays in the repo:
+
+```powershell
+Copy-Item backend/.env.example backend/.env
+```
+
+A variable already present in the environment always wins over the file, so an explicit `$env:GEMINI_API_KEY` or a CI secret is never overridden by a stale `.env`.
+
+Every `.env` file is gitignored; the `.env.example` templates are not, so keep real keys out of them. If a key in `backend/.env` appears to have no effect, confirm the backend was restarted after the file changed — the file is read once at startup, and `--reload` only watches source files.
 
 ## Data sent to Gemini
 

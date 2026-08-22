@@ -11,9 +11,17 @@ from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
 from starlette.concurrency import run_in_threadpool
 
 from . import corpora, file_signature, pipeline
+
+# Load backend/.env before anything reads the environment. CORS_ORIGINS is read
+# at import time a few lines down, and GEMINI_API_KEY is read per request, so
+# this has to happen first. Real environment variables win: override=False
+# means an explicitly exported value is never replaced by the file.
+ENV_PATH = Path(__file__).resolve().parent / ".env"
+load_dotenv(ENV_PATH, override=False)
 
 logger = logging.getLogger("resume_evaluator")
 
