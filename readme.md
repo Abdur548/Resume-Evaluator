@@ -30,6 +30,24 @@ so a local environment that disagrees with the manifest will not match CI.
 
 `GEMINI_API_KEY` is optional. Without it, deterministic resume and job-fit evaluations still work; the relevant LLM evaluation is returned as `null` with a skip status.
 
+`GROQ_API_KEY` is an optional fallback. When it is set and a Gemini call fails for any reason — capacity (`503`), rate limit, a retired model (`404`), or an invalid key — the request is immediately retried against Groq instead. Falling back on *any* failure is deliberate: a second provider with its own key and model covers the cases a retry against Gemini could not fix. With no Groq key set, behaviour is unchanged.
+
+A fallback answer is visible in the status string, because it came from a different model:
+
+```text
+Success                                              Gemini answered
+Success via Groq (Gemini: Service unavailable)       fallback answered
+Failed: Gemini: Rate limit exceeded; Groq: Timeout   neither answered
+```
+
+Deterministic scores are never affected — a provider outage can only remove the optional Gemini/Groq panels, never a score.
+
+`GEMINI_MODEL` and `GROQ_MODEL` override the pinned defaults in `backend/llm_providers.py`. Hosted models get retired periodically; to see what your keys can currently reach:
+
+```powershell
+python -m backend.llm_providers
+```
+
 `CORS_ORIGINS` is optional. It accepts a comma-separated list of HTTP(S) origins and defaults to `http://localhost:3000,http://localhost:5173`. Use it when the frontend runs on another origin; do not include credentials, paths, wildcards, queries, or fragments.
 
 PowerShell:

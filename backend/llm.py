@@ -1,25 +1,15 @@
 import os
 import re
 import json
-from google import genai
-from google.genai import types
+
+from .llm_providers import call_with_fallback, gemini_model_name
 
 
-# Pinned rather than a floating alias such as gemini-flash-latest, so the model
-# cannot change under the app without a deliberate edit. Override with the
-# GEMINI_MODEL environment variable when a model is retired -- Google removes
-# older models for new API keys, which is what made gemini-2.5-flash start
-# returning 404 NOT_FOUND here.
-DEFAULT_MODEL_NAME = "gemini-3.7-flash"
-
-
+# Model selection lives in llm_providers, which owns every provider detail.
+# Kept as a name here because callers and tests already reference it.
 def model_name() -> str:
-    """Resolve the model per call.
+    return gemini_model_name()
 
-    Read at call time, not import time, because backend/.env is loaded after
-    this module is first imported.
-    """
-    return os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL_NAME
 
 # Instruction-shaped patterns only.
 #
@@ -126,10 +116,9 @@ def get_llm_evaluation(text: str, field: str, heuristic_result: dict) -> tuple[d
         
     masked_text = mask_pii(text)
     
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-         return None, "Skipped: Missing API Key"
-         
+    if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GROQ_API_KEY")):
+        return None, "Skipped: Missing API Key"
+
     system_prompt = (
         "You are a professional technical recruiter evaluating a resume against a specific role. "
         "Evaluate only skills, experience, and formatting relevant to that role. "
@@ -141,43 +130,16 @@ def get_llm_evaluation(text: str, field: str, heuristic_result: dict) -> tuple[d
     
     user_prompt = f"Field: {field}\nHeuristic Reference Scores: {json.dumps(heuristic_result)}\n\nResume Text:\n{masked_text}"
     
-    try:
-        client = genai.Client(api_key=api_key)
-        generation_config = types.GenerateContentConfig(
-            temperature=0.0,
-            response_mime_type="application/json",
-            system_instruction=system_prompt,
-        )
-        response = client.models.generate_content(
-            model=model_name(),
-            contents=user_prompt,
-            config=generation_config,
-        )
-        val = validate_llm_response(response.text)
-        if val is not None:
-             return val, "Success"
-             
-        # Retry logic: 3. OUTPUT VALIDATION GUARDRAILS
-        retry_prompt = user_prompt + "\n\nCRITICAL: Your previous response was invalid. Return ONLY valid JSON with the 4 integer keys between 0 and 100."
-        response_retry = client.models.generate_content(
-            model=model_name(),
-            contents=retry_prompt,
-            config=generation_config,
-        )
-        val_retry = validate_llm_response(response_retry.text)
-        if val_retry is not None:
-             return val_retry, "Success"
-        else:
-             return None, "Failed: Invalid JSON output from LLM"
-             
-    except Exception as e:
-        # Fallback for API errors (timeout, rate limit, auth, network)
-        err_msg = str(e)
-        if "timeout" in err_msg.lower():
-             return None, "Failed: Timeout"
-        elif "quota" in err_msg.lower() or "rate" in err_msg.lower() or "429" in err_msg:
-             return None, "Failed: Rate limit exceeded"
-        elif "api key" in err_msg.lower() or "auth" in err_msg.lower() or "401" in err_msg or "403" in err_msg:
-             return None, "Failed: Authentication error"
-        else:
-             return None, f"Failed: API Error - {err_msg}"
+    retry_prompt = (
+        user_prompt
+        + "\n\nCRITICAL: Your previous response was invalid. Return ONLY valid "
+        "JSON with the 4 integer keys between 0 and 100."
+    )
+
+    scores, outcome = call_with_fallback(
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        retry_prompt=retry_prompt,
+        validate=validate_llm_response,
+    )
+    return scores, outcome.status()

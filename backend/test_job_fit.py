@@ -212,9 +212,8 @@ def test_job_fit_is_deterministic():
     assert score_job_fit(resume, jd, FIELD) == score_job_fit(resume, jd, FIELD)
 
 # --- Optional LLM job-fit layer tests ---
-from unittest.mock import MagicMock, patch
-
-from backend import job_fit_llm
+from backend import job_fit_llm, llm_providers
+from backend.llm_providers import ProviderResult
 
 
 HEURISTIC_JOB_FIT = {
@@ -226,11 +225,14 @@ HEURISTIC_JOB_FIT = {
 }
 
 
-def test_job_fit_llm_missing_key_is_non_fatal():
-    with patch("backend.job_fit_llm.os.environ.get", return_value=None):
-        evaluation, status = job_fit_llm.get_llm_job_fit_evaluation(
-            "Python resume", "Python role", HEURISTIC_JOB_FIT
-        )
+def test_job_fit_llm_missing_key_is_non_fatal(monkeypatch):
+    """No provider configured at all is a skip, not a failure."""
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+
+    evaluation, status = job_fit_llm.get_llm_job_fit_evaluation(
+        "Python resume", "Python role", HEURISTIC_JOB_FIT
+    )
 
     assert evaluation is None
     assert "Missing API Key" in status
@@ -247,51 +249,96 @@ def test_job_fit_llm_scans_jd_for_prompt_injection():
     assert "prompt injection" in status
 
 
-def test_job_fit_llm_validates_successful_response():
-    response = MagicMock()
-    response.text = (
+def _stub_providers(monkeypatch, *providers):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(llm_providers, "PROVIDERS", providers)
+
+
+def test_job_fit_llm_validates_successful_response(monkeypatch):
+    payload = (
         '{"overall_assessment":"Strong Python alignment",'
         '"gap_explanations":["No Kubernetes evidence"],'
         '"phrasing_suggestions":["Quantify API impact"]}'
     )
+    _stub_providers(
+        monkeypatch, ("Gemini", lambda system, user: ProviderResult(text=payload))
+    )
 
-    with patch("backend.job_fit_llm.os.environ.get", return_value="test-key"):
-        with patch("backend.job_fit_llm.genai.Client") as client_class:
-            client_class.return_value.models.generate_content.return_value = response
-            evaluation, status = job_fit_llm.get_llm_job_fit_evaluation(
-                "Python resume", "Python role", HEURISTIC_JOB_FIT
-            )
+    evaluation, status = job_fit_llm.get_llm_job_fit_evaluation(
+        "Python resume", "Python role", HEURISTIC_JOB_FIT
+    )
 
     assert status == "Success"
     assert evaluation["overall_assessment"] == "Strong Python alignment"
 
 
-def test_job_fit_llm_retries_once_then_falls_back():
-    response = MagicMock()
-    response.text = "invalid"
+def test_job_fit_llm_retries_once_then_falls_back(monkeypatch):
+    calls = []
 
-    with patch("backend.job_fit_llm.os.environ.get", return_value="test-key"):
-        with patch("backend.job_fit_llm.genai.Client") as client_class:
-            generate = client_class.return_value.models.generate_content
-            generate.return_value = response
-            evaluation, status = job_fit_llm.get_llm_job_fit_evaluation(
-                "Python resume", "Python role", HEURISTIC_JOB_FIT
-            )
+    def always_invalid(system, user):
+        calls.append(user)
+        return ProviderResult(text="invalid")
+
+    _stub_providers(monkeypatch, ("Gemini", always_invalid))
+
+    evaluation, status = job_fit_llm.get_llm_job_fit_evaluation(
+        "Python resume", "Python role", HEURISTIC_JOB_FIT
+    )
 
     assert evaluation is None
     assert "Invalid JSON" in status
-    assert generate.call_count == 2
+    assert len(calls) == 2
 
 
-def test_job_fit_llm_client_failure_is_non_fatal():
-    with patch("backend.job_fit_llm.os.environ.get", return_value="test-key"):
-        with patch(
-            "backend.job_fit_llm.genai.Client",
-            side_effect=Exception("API key rejected"),
-        ):
-            evaluation, status = job_fit_llm.get_llm_job_fit_evaluation(
-                "Python resume", "Python role", HEURISTIC_JOB_FIT
-            )
+def test_job_fit_llm_client_failure_is_non_fatal(monkeypatch):
+    _stub_providers(
+        monkeypatch,
+        ("Gemini", lambda system, user: ProviderResult(error="Authentication error")),
+    )
+
+    evaluation, status = job_fit_llm.get_llm_job_fit_evaluation(
+        "Python resume", "Python role", HEURISTIC_JOB_FIT
+    )
 
     assert evaluation is None
     assert "Authentication error" in status
+
+
+def test_job_fit_guidance_survives_a_gemini_outage(monkeypatch):
+    """Deterministic scoring already survives an outage; guidance now does too."""
+    payload = (
+        '{"overall_assessment":"Reasonable fit",'
+        '"gap_explanations":["No Kubernetes evidence"],'
+        '"phrasing_suggestions":["Quantify API impact"]}'
+    )
+    monkeypatch.setenv("GROQ_API_KEY", "test-groq-key")
+    _stub_providers(
+        monkeypatch,
+        ("Gemini", lambda system, user: ProviderResult(error="Service unavailable")),
+        ("Groq", lambda system, user: ProviderResult(text=payload)),
+    )
+
+    evaluation, status = job_fit_llm.get_llm_job_fit_evaluation(
+        "Python resume", "Python role", HEURISTIC_JOB_FIT
+    )
+
+    assert evaluation["overall_assessment"] == "Reasonable fit"
+    assert "Success via Groq" in status
+    assert "Service unavailable" in status
+
+
+def test_job_fit_reports_both_providers_when_both_fail(monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "test-groq-key")
+    _stub_providers(
+        monkeypatch,
+        ("Gemini", lambda system, user: ProviderResult(error="Rate limit exceeded")),
+        ("Groq", lambda system, user: ProviderResult(error="Service unavailable")),
+    )
+
+    evaluation, status = job_fit_llm.get_llm_job_fit_evaluation(
+        "Python resume", "Python role", HEURISTIC_JOB_FIT
+    )
+
+    assert evaluation is None
+    assert "Gemini: Rate limit exceeded" in status
+    assert "Groq: Service unavailable" in status

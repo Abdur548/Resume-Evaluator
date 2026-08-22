@@ -4,10 +4,8 @@ import json
 import os
 import re
 
-from google import genai
-from google.genai import types
-
-from .llm import detect_prompt_injection, mask_pii, model_name
+from .llm import detect_prompt_injection, mask_pii
+from .llm_providers import call_with_fallback
 
 
 RESPONSE_KEYS = {
@@ -54,8 +52,7 @@ def get_llm_job_fit_evaluation(
     if detect_prompt_injection(resume_text) or detect_prompt_injection(jd_text):
         return None, "Skipped: Potential prompt injection detected"
 
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
+    if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GROQ_API_KEY")):
         return None, "Skipped: Missing API Key"
 
     masked_resume = mask_pii(resume_text)
@@ -76,43 +73,15 @@ def get_llm_job_fit_evaluation(
         f"Job description:\n{masked_jd}\n\nResume:\n{masked_resume}"
     )
 
-    try:
-        # Construct per-call so a rotated key is not cached between requests.
-        client = genai.Client(api_key=api_key)
-        generation_config = types.GenerateContentConfig(
-            temperature=0.0,
-            response_mime_type="application/json",
-            system_instruction=system_prompt,
-        )
-        response = client.models.generate_content(
-            model=model_name(),
-            contents=user_prompt,
-            config=generation_config,
-        )
-        validated = validate_job_fit_llm_response(response.text)
-        if validated is not None:
-            return validated, "Success"
+    retry_prompt = (
+        user_prompt
+        + "\n\nYour previous output was invalid. Return only the exact JSON schema requested."
+    )
 
-        retry_prompt = (
-            user_prompt
-            + "\n\nYour previous output was invalid. Return only the exact JSON schema requested."
-        )
-        retry = client.models.generate_content(
-            model=model_name(),
-            contents=retry_prompt,
-            config=generation_config,
-        )
-        validated = validate_job_fit_llm_response(retry.text)
-        if validated is not None:
-            return validated, "Success"
-        return None, "Failed: Invalid JSON output from LLM"
-    except Exception as error:
-        message = str(error)
-        lowered = message.lower()
-        if "timeout" in lowered:
-            return None, "Failed: Timeout"
-        if "quota" in lowered or "rate" in lowered or "429" in message:
-            return None, "Failed: Rate limit exceeded"
-        if "api key" in lowered or "auth" in lowered or "401" in message or "403" in message:
-            return None, "Failed: Authentication error"
-        return None, f"Failed: API Error - {message}"
+    guidance, outcome = call_with_fallback(
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        retry_prompt=retry_prompt,
+        validate=validate_job_fit_llm_response,
+    )
+    return guidance, outcome.status()
