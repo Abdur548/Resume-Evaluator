@@ -31,9 +31,15 @@ from dataclasses import dataclass
 
 GEMINI_DEFAULT_MODEL = "gemini-3.7-flash"
 
-# Groq retires hosted models fairly often. Override with GROQ_MODEL; run
+# Groq retires hosted models fairly often -- the Llama family this originally
+# pointed at is no longer offered. Override with GROQ_MODEL; run
 # `python -m backend.llm_providers` to list what the configured key can reach.
-GROQ_DEFAULT_MODEL = "llama-3.3-70b-versatile"
+#
+# Chosen by testing every chat-capable model on the account against this app's
+# actual config (temperature 0, JSON mode) and the job-fit schema. gpt-oss-20b
+# is faster but silently omits phrasing_suggestions, so it fails validation;
+# qwen3.6-27b and groq/compound-mini also pass and are reasonable overrides.
+GROQ_DEFAULT_MODEL = "openai/gpt-oss-120b"
 
 
 @dataclass(frozen=True)
