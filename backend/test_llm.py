@@ -56,7 +56,7 @@ def test_successful_evaluation(heuristic_result):
             assert status == "Success"
             assert eval_dict == {"field_relevance": 80, "structure": 70, "parseability": 90, "impact": 85}
             client_class.assert_called_once_with(api_key="dummy_key")
-            assert mock_gen.call_args.kwargs["model"] == llm.MODEL_NAME
+            assert mock_gen.call_args.kwargs["model"] == llm.model_name()
             assert mock_gen.call_args.kwargs["config"].temperature == 0.0
 
 def test_malformed_json_retries_and_succeeds(heuristic_result):

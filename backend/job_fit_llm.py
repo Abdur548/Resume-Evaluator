@@ -7,7 +7,7 @@ import re
 from google import genai
 from google.genai import types
 
-from .llm import detect_prompt_injection, mask_pii
+from .llm import detect_prompt_injection, mask_pii, model_name
 
 
 RESPONSE_KEYS = {
@@ -16,7 +16,7 @@ RESPONSE_KEYS = {
     "phrasing_suggestions",
 }
 
-MODEL_NAME = "gemini-2.5-flash"
+# Model selection is shared with the resume path; see backend/llm.py.
 
 
 def validate_job_fit_llm_response(response_text: str) -> dict | None:
@@ -85,7 +85,7 @@ def get_llm_job_fit_evaluation(
             system_instruction=system_prompt,
         )
         response = client.models.generate_content(
-            model=MODEL_NAME,
+            model=model_name(),
             contents=user_prompt,
             config=generation_config,
         )
@@ -98,7 +98,7 @@ def get_llm_job_fit_evaluation(
             + "\n\nYour previous output was invalid. Return only the exact JSON schema requested."
         )
         retry = client.models.generate_content(
-            model=MODEL_NAME,
+            model=model_name(),
             contents=retry_prompt,
             config=generation_config,
         )

@@ -5,7 +5,21 @@ from google import genai
 from google.genai import types
 
 
-MODEL_NAME = "gemini-2.5-flash"
+# Pinned rather than a floating alias such as gemini-flash-latest, so the model
+# cannot change under the app without a deliberate edit. Override with the
+# GEMINI_MODEL environment variable when a model is retired -- Google removes
+# older models for new API keys, which is what made gemini-2.5-flash start
+# returning 404 NOT_FOUND here.
+DEFAULT_MODEL_NAME = "gemini-3.7-flash"
+
+
+def model_name() -> str:
+    """Resolve the model per call.
+
+    Read at call time, not import time, because backend/.env is loaded after
+    this module is first imported.
+    """
+    return os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL_NAME
 
 # Instruction-shaped patterns only.
 #
@@ -135,7 +149,7 @@ def get_llm_evaluation(text: str, field: str, heuristic_result: dict) -> tuple[d
             system_instruction=system_prompt,
         )
         response = client.models.generate_content(
-            model=MODEL_NAME,
+            model=model_name(),
             contents=user_prompt,
             config=generation_config,
         )
@@ -146,7 +160,7 @@ def get_llm_evaluation(text: str, field: str, heuristic_result: dict) -> tuple[d
         # Retry logic: 3. OUTPUT VALIDATION GUARDRAILS
         retry_prompt = user_prompt + "\n\nCRITICAL: Your previous response was invalid. Return ONLY valid JSON with the 4 integer keys between 0 and 100."
         response_retry = client.models.generate_content(
-            model=MODEL_NAME,
+            model=model_name(),
             contents=retry_prompt,
             config=generation_config,
         )
