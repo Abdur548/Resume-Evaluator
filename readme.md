@@ -57,6 +57,13 @@ $env:GEMINI_API_KEY="your_api_key_here"
 $env:CORS_ORIGINS="http://localhost:5173,https://resume.example.com"
 ```
 
+Windows `cmd.exe`:
+
+```bat
+set GEMINI_API_KEY=your_api_key_here
+set CORS_ORIGINS=http://localhost:5173,https://resume.example.com
+```
+
 macOS/Linux:
 
 ```bash
@@ -101,10 +108,23 @@ This is a deliberate trade-off for a local, bring-your-own-key tool: your resume
 
 From the project root, create the backend virtual environment inside the backend directory and activate it from there:
 
+PowerShell:
+
 ```powershell
 python -m venv backend/.venv
 .\backend\.venv\Scripts\Activate.ps1
 pip install -r backend/requirements.txt
+uvicorn backend.main:app --reload
+```
+
+Windows `cmd.exe` — note the different activation script. `Activate.ps1` is a
+PowerShell script and will not run here, and `./` is not a valid path prefix in
+cmd:
+
+```bat
+python -m venv backend\.venv
+backend\.venv\Scripts\activate.bat
+pip install -r backend\requirements.txt
 uvicorn backend.main:app --reload
 ```
 
@@ -116,6 +136,9 @@ source backend/.venv/bin/activate
 pip install -r backend/requirements.txt
 uvicorn backend.main:app --reload
 ```
+
+Run all of these from the project root. Starting the server from inside
+`backend/` fails, because `backend.main` cannot be resolved from there.
 
 The API runs at `http://localhost:8000`.
 
@@ -146,6 +169,7 @@ Terminal 1, from the project root:
 
 ```powershell
 uvicorn backend.main:app --reload
+
 ```
 
 Terminal 2:
