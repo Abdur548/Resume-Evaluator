@@ -26,6 +26,20 @@ backend/data/
 .venv/
 venv/
 
-# Frontend dependencies and output are also covered by frontend/.gitignore.
+# Frontend dependencies and output. Unanchored as well as frontend-specific,
+# so a package added anywhere else is covered too.
 frontend/node_modules/
 frontend/dist/
+node_modules/
+dist/
+
+# Editor and OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
